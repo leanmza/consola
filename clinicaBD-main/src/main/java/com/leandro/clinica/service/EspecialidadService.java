@@ -35,4 +35,12 @@ public class EspecialidadService implements IEspecialidadService {
         especialidadDTO.setNombreEspecialidad(especialidad.getNombre());
         return especialidadDTO;
     }
+
+    @Override
+    public Especialidad createEspecialidad(String nombre) {
+        Especialidad especialidad = new Especialidad();
+        especialidad.setNombre(nombre);
+        especialidadRepo.save(especialidad);
+        return especialidad;
+    }
 }

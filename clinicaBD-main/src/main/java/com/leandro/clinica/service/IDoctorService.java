@@ -2,6 +2,7 @@ package com.leandro.clinica.service;
 
 import com.leandro.clinica.DTO.DoctorDTO;
 import com.leandro.clinica.model.Doctor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
