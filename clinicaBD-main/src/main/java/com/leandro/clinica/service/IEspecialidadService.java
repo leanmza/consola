@@ -7,4 +7,6 @@ public interface IEspecialidadService {
     EspecialidadDTO getEspecialidadById(long id);
 
     Especialidad getEspecialidadByName(String nombre);
+
+    Especialidad createEspecialidad(String nombre);
 }

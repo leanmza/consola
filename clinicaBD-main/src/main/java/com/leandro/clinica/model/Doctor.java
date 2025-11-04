@@ -1,6 +1,9 @@
 package com.leandro.clinica.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.util.List;
@@ -17,9 +20,17 @@ public class Doctor {
     @Column(name = "doctor_id", unique = true)
     private long id;
 
+    @NotNull
+    @Size(max = 20)
     private String nombre;
+    @NotNull
+    @Size(max = 20)
     private String apellido;
+    @NotNull
+    @Email
     private String email;
+    @NotNull
+    @Size(max = 12)
     private String celular;
 
     @ManyToOne(cascade = CascadeType.PERSIST)

@@ -1,6 +1,8 @@
 package com.leandro.clinica.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -20,6 +22,7 @@ public class Turno {
     @Column(unique = true)
     private long id;
 
+    @NotNull
     private LocalDateTime fechaHora;
     private boolean ocupado;
 

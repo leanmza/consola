@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface IEspecialidadRepository extends JpaRepository<Especialidad, Long> {
 
     Especialidad findEspecialidadByNombre(String nombre);
+
+
 }

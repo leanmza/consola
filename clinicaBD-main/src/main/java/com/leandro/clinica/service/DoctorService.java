@@ -4,15 +4,13 @@ import com.leandro.clinica.DTO.DoctorDTO;
 import com.leandro.clinica.model.Doctor;
 import com.leandro.clinica.model.Especialidad;
 import com.leandro.clinica.repository.IDoctorRepository;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 
-import javax.print.Doc;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class DoctorService implements IDoctorService {

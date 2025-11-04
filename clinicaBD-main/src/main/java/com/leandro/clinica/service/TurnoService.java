@@ -119,12 +119,17 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public TurnoDTO getTurnoById(long id) {
-        return turnoRepo.findById(id).map(this::mapearDTO).orElseGet(null);
+        TurnoDTO turnoDTO =  turnoRepo.findById(id).map(this::mapearDTO).orElse(null);
+
+        if (turnoDTO == null){
+            return llenarMensajeError("El turno no existe");
+        }
+        return turnoDTO;
     }
 
     @Override
     public void deleteTurno(long id) {
-        Turno turno = turnoRepo.findById(id).orElseGet(null);
+        Turno turno = turnoRepo.findById(id).orElse(null);
         //No borro de la BD el turno, solo le cambio el valor a ocupado a false
         turno.setOcupado(false);
         turnoRepo.save(turno);
