@@ -12,6 +12,7 @@ public interface IPacienteService {
 
     PacienteDTO getPacienteById(long id);
 
+
     void createPaciente(Paciente paciente);
 
     void deletePaciente(long id);

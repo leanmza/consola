@@ -9,14 +9,13 @@ import com.leandro.clinica.model.Horarios;
 import com.leandro.clinica.model.Paciente;
 import com.leandro.clinica.model.Turno;
 import com.leandro.clinica.service.*;
-import jakarta.validation.ConstraintDeclarationException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 
-import javax.print.Doc;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -94,7 +93,7 @@ public class ClinicaApplication implements CommandLineRunner {
             limpiarConsola();
             System.out.println("+-------------------- PACIENTES --------------------+");
             System.out.println("| 1) Listar                                         |");
-            System.out.println("| 2) Buscar por ID                                  |");
+            System.out.println("| 2) Buscar por ID                                 |");
             System.out.println("| 3) Crear                                          |");
             System.out.println("| 4) Actualizar                                     |");
             System.out.println("| 5) Eliminar                                       |");
@@ -648,6 +647,7 @@ public class ClinicaApplication implements CommandLineRunner {
             System.out.println("- " + turno.getMensajeError());
             return;
         }
+
         String pac = turno.getPaciente() != null ? (turno.getPaciente().getNombre() + " " + turno.getPaciente().getApellido()) : "";
         String doc = turno.getDoctor() != null ? (turno.getDoctor().getNombre() + " " + turno.getDoctor().getApellido()) : "";
         System.out.println("# Turno " + turno.getId());

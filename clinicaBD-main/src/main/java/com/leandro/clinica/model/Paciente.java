@@ -24,6 +24,10 @@ public class Paciente {
     private long id;
 
     @NotNull
+    @Size(max = 8)
+    private int dni;
+
+    @NotNull
     @Size(max = 20)
     private String nombre;
     @NotNull
