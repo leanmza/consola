@@ -103,10 +103,11 @@ public class TurnoService implements ITurnoService {
     }
 
     private Turno asignarHuecoHorario(Turno turno, LocalTime horaInicio, LocalTime horaFin) {
-        //Si la validacion anterior es falsa, reviso si hay huecos de horas y fechas en los turnos del doctor,
+        // Reviso si hay huecos de horas y fechas en los turnos del doctor,
         // como puede pasar si se usa la función reservarTurno que permite elegir día y hora
 
         LocalDateTime fechaDisponible = buscarTurnosLibresPrevios(turno.getDoctor(), horaInicio, horaFin);
+
         if (fechaDisponible == null) {
             return null;
         }
@@ -206,38 +207,55 @@ public class TurnoService implements ITurnoService {
     }
 
     private LocalDateTime buscarTurnosLibresPrevios(Doctor doctor, LocalTime horaInicio, LocalTime horaFin) {
+
         //Obtengo la lista de turnos del doctor elegido con fecha mayor igual a la actual
         List<Turno> listaTurnos = turnoRepo.findTurnosPorDoctor(doctor);
+        //Si la lista tiene 1 o 0 elementos devuelvo null
+        if (listaTurnos.size() < 2) {
+
+            return null;
+        }
 
         //Saco la lista de fecha y hora de la lista de turnos
-        List<LocalDateTime> listaFechas = listaTurnos.stream().map(Turno::getFechaHora).toList();
+        List<LocalDateTime> listaFechasOcupadas = listaTurnos.stream().map(Turno::getFechaHora).toList();
+
         LocalDateTime fechaCandidata;
 
-
         //Reviso con un for la diferencia de fecha y hora entre un turno asignado y el siguiente
-        for (int i = 0; i < listaFechas.size() - 1; i++) {
+        for (int i = 0; i < listaTurnos.size() - 1; i++) {
             LocalDateTime fechaPresente = listaTurnos.get(i).getFechaHora();
             LocalDateTime fechaSiguiente = listaTurnos.get(i + 1).getFechaHora();
-            Duration diferencia = Duration.between(fechaPresente, fechaSiguiente);
 
-            //Reviso si la diferencia entre las horas es mayor a 30 minutos y si el horario 30 minutos más tarde de fechaPresente es válido
-            if (diferencia.toMinutes() > 30 && validarHorario(fechaPresente.plusMinutes(30), horaInicio, horaFin)) {
+            //Reviso si la diferecia entre horas es mayor a 30 minutos en el día
+            if (hayHuecoEntreHorarios(fechaPresente, fechaSiguiente)) {
                 fechaCandidata = siguienteTurno(fechaPresente, horaInicio, horaFin);
+
                 //revisa si la fecha candidata no existe en la lista de fechas y horas
-                if (!listaFechas.contains(fechaCandidata)) {
+                if (!listaFechasOcupadas.contains(fechaCandidata) && validarHorario(fechaCandidata, horaInicio, horaFin)) {
                     return fechaCandidata;
                 }
             }
+
             //Reviso si la diferecia entre horas es mayor a 30 minutos y si hay diferencia mayor a 1 día
-            if (diferencia.toMinutes() > 30 && diferencia.toDays() > 1) {
+            if (hayHuecoEntreHorarios(fechaPresente, fechaSiguiente) && hayDiferenciaDeDia(fechaPresente, fechaSiguiente)) {
                 fechaCandidata = siguienteTurno(fechaPresente, horaInicio, horaFin);
-                if (!listaFechas.contains(fechaCandidata)) {
+                if (!listaFechasOcupadas.contains(fechaCandidata)) {
 
                     return fechaCandidata;
                 }
             }
         }
         return null;
+    }
+
+    private boolean hayDiferenciaDeDia(LocalDateTime fechaPresente, LocalDateTime fechaSiguiente) {
+        Duration diferencia = Duration.between(fechaPresente, fechaSiguiente);
+        return diferencia.toDays() > 1;
+    }
+
+    private boolean hayHuecoEntreHorarios(LocalDateTime fechaPresente, LocalDateTime fechaSiguiente) {
+        Duration diferencia = Duration.between(fechaPresente, fechaSiguiente);
+        return diferencia.toMinutes() > 30;
     }
 
     private LocalDateTime primerTurnoDelProximoDía(LocalTime horaInicio, LocalTime horaFin) {
