@@ -29,7 +29,6 @@ public class TurnoService implements ITurnoService {
     @Autowired
     private DoctorService doctorService;
 
-
     @Override
     public List<TurnoDTO> getTurnosByNombreDoctor(String nombre, String apellido) {
         List<TurnoDTO> listaTurnos = turnoRepo.findTurnoByNombreDoctor(nombre, apellido).stream().map(this::mapearDTO).toList();
@@ -51,7 +50,7 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public List<TurnoDTO> getTurnosPendientes() {
-        List<TurnoDTO> listaTurnos = turnoRepo.findTurnosDesdeFecha(LocalDateTime.now()).stream().map(this::mapearDTO).toList();
+        List<TurnoDTO> listaTurnos = turnoRepo.findTurnosDesdeFecha().stream().map(this::mapearDTO).toList();
 
         if (listaTurnos.isEmpty()) {
             return List.of(llenarMensajeError("No hay turnos pendientes en la clínica"));
@@ -62,50 +61,78 @@ public class TurnoService implements ITurnoService {
     //Asigna automáticamente los turnos, uno detrás de otro, excepto que haya un turno previo cancelado
     @Override
     public TurnoDTO asignarTurno(Turno turno) {
-        // Obtengo la fecha y hora actual
-        LocalDateTime fechaActual = LocalDateTime.now();
         LocalTime horaInicio = doctorService.getHorarioInicio(turno.getDoctor());
         LocalTime horaFin = doctorService.getHorarioFin(turno.getDoctor());
 
+        Turno turnoAsignado;
+
         //Primero busco el primer turno sin ocupar del doctor, puede ser cancelado
-        List<Turno> turnosCancelados = turnoRepo.findTurnosCanceladosPorDoctorDesdeFecha(turno.getDoctor(), fechaActual);
+        turnoAsignado = asignarTurnoCancelado(turno);
+        if (turnoAsignado != null) {
+            return mapearDTO(turnoAsignado);
+        }
+
+        //Si la validacion anterior es falsa, reviso si hay huecos de horas y fechas en los turnos del doctor
+        turnoAsignado = asignarHuecoHorario(turno, horaInicio, horaFin);
+        if (turnoAsignado != null) {
+            return mapearDTO(turnoAsignado);
+        }
+
+        //Si la validacion anterior es falsa, asigno el turno en la primer hora y fecha disponible
+        turnoAsignado = asignarSiguienteDisponible(turno, horaInicio, horaFin);
+        return mapearDTO(turnoAsignado);
+
+    }
+
+    private Turno asignarSiguienteDisponible(Turno turno, LocalTime horaInicio, LocalTime horaFin) {
+        // Busco la fecha y hora del último turno del doctor y los horarios de inicio y fin
+        LocalDateTime ultimaFecha = turnoRepo.findUltimaFechaTurnoByDoctor(turno.getDoctor());
+
+        // Si ultimaFecha es null, busco el primer horario libre del día siguiente;
+        if (ultimaFecha == null) {
+            ultimaFecha = primerTurnoDelProximoDía(horaInicio, horaFin);
+        }
+
+        // Busco el proximo horario disponible
+        LocalDateTime siguiente = siguienteTurno(ultimaFecha, horaInicio, horaFin);
+
+        turno.setFechaHora(siguiente);
+        turno.setOcupado(true);
+        turnoRepo.save(turno);
+        return turno;
+    }
+
+    private Turno asignarHuecoHorario(Turno turno, LocalTime horaInicio, LocalTime horaFin) {
+        //Si la validacion anterior es falsa, reviso si hay huecos de horas y fechas en los turnos del doctor,
+        // como puede pasar si se usa la función reservarTurno que permite elegir día y hora
+
+        LocalDateTime fechaDisponible = buscarTurnosLibresPrevios(turno.getDoctor(), horaInicio, horaFin);
+        if (fechaDisponible == null) {
+            return null;
+        }
+
+        turno.setFechaHora(fechaDisponible);
+        turno.setOcupado(true);
+        turnoRepo.save(turno);
+        return turno;
+
+    }
+
+    private Turno asignarTurnoCancelado(Turno turno) {
+        List<Turno> turnosCancelados = turnoRepo.findTurnosCanceladosPorDoctorDesdeFecha(turno.getDoctor());
+        if (turnosCancelados.isEmpty()) {
+            return null;
+        }
 
         //Si hay turnos cancelados, le asigno a turno, que viene por parámetro con el doctor y el paciente,  el id y fecha/hora
         // del primer turno cancelado de la lista de turnos cancelados
-        if (!turnosCancelados.isEmpty()) {
-            turno.setId(turnosCancelados.get(0).getId());
-            turno.setOcupado(true);
-            turno.setFechaHora(turnosCancelados.get(0).getFechaHora());
-            turnoRepo.save(turno);
-            return mapearDTO(turno);
-        }
-        //Si la validacion anterior es falsa, reviso si hay huecos de horas y fechas en los turnos del doctor,
-        // como puede pasar si se usa la función reservarTurno que permite elegir día y hora
-        LocalDateTime fechaDisponible = buscarTurnosLibresPrevios(turno.getDoctor(), horaInicio, horaFin);
-        if (fechaDisponible != null) {
-            turno.setFechaHora(fechaDisponible);
-            turno.setOcupado(true);
-            turnoRepo.save(turno);
-            return mapearDTO(turno);
-        } else {
 
-            // Busco la fecha y hora del último turno del doctor y los horarios de inicio y fin
-            LocalDateTime ultimaFecha = turnoRepo.findUltimaFechaTurnoByDoctor(turno.getDoctor());
+        turno.setId(turnosCancelados.get(0).getId());
+        turno.setOcupado(true);
+        turno.setFechaHora(turnosCancelados.get(0).getFechaHora());
+        turnoRepo.save(turno);
+        return turno;
 
-
-            // Si ultimaFecha es null, busco el primer horario libre del día siguiente;
-            if (ultimaFecha == null) {
-                ultimaFecha = primerTurnoDelProximoDía(horaInicio, horaFin);
-            }
-
-            // Busco el proximo horario disponible
-            LocalDateTime siguiente = siguienteTurno(ultimaFecha, horaInicio, horaFin);
-
-            turno.setFechaHora(siguiente);
-            turno.setOcupado(true);
-            turnoRepo.save(turno);
-            return mapearDTO(turno);
-        }
     }
 
     @Override
@@ -119,9 +146,9 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public TurnoDTO getTurnoById(long id) {
-        TurnoDTO turnoDTO =  turnoRepo.findById(id).map(this::mapearDTO).orElse(null);
+        TurnoDTO turnoDTO = turnoRepo.findById(id).map(this::mapearDTO).orElse(null);
 
-        if (turnoDTO == null){
+        if (turnoDTO == null) {
             return llenarMensajeError("El turno no existe");
         }
         return turnoDTO;
@@ -129,7 +156,7 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public void deleteTurno(long id) {
-        Turno turno = turnoRepo.findById(id).orElse  (null);
+        Turno turno = turnoRepo.findById(id).orElse(null);
         //No borro de la BD el turno, solo le cambio el valor a ocupado a false
         turno.setOcupado(false);
         turnoRepo.save(turno);
@@ -137,7 +164,7 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public List<TurnoDTO> getTurnosCancelados() {
-        List<TurnoDTO> listaTurnos = turnoRepo.findTurnosCanceladosDesdeFecha(LocalDateTime.now()).stream().map(this::mapearDTO).toList();
+        List<TurnoDTO> listaTurnos = turnoRepo.findTurnosCanceladosDesdeFecha().stream().map(this::mapearDTO).toList();
         if (listaTurnos.isEmpty()) {
             return List.of(llenarMensajeError("No hay turnos cancelados"));
         }
@@ -146,20 +173,23 @@ public class TurnoService implements ITurnoService {
 
     @Override
     public TurnoDTO reservarTurno(Turno turno) {
-        Optional<Turno> estaDisponible = turnoRepo.findTurnoDisponiblePorDoctoryFecha(turno.getDoctor(), turno.getFechaHora());
+
+        // Veo si el horario elegido está dentro del horario del doctor
+        LocalTime horaInicio = doctorService.getHorarioInicio(turno.getDoctor());
+        LocalTime horaFin = doctorService.getHorarioFin(turno.getDoctor());
+
+        if (!validarHorario(turno.getFechaHora(), horaInicio, horaFin)) {
+            return llenarMensajeError("El profesional no atiende en el horario elegido");
+        }
+
+        Optional<Turno> estaDisponible = turnoRepo.findTurnoDisponiblePorDoctoryFecha(turno.getDoctor(),
+                turno.getFechaHora());
 
         // Si estaDisponible es null, seteo ocupado true al turno que viene por parámetro y lo guardo
         if (estaDisponible.isEmpty()) {
             turno.setOcupado(true);
             turnoRepo.save(turno);
             return mapearDTO(turno);
-        }
-
-        // Veo si el horario elegido está dentro del horario del doctor
-        LocalTime horaInicio = doctorService.getHorarioInicio(turno.getDoctor());
-        LocalTime horaFin = doctorService.getHorarioFin(turno.getDoctor());
-        if (!validarHorario(turno.getFechaHora(), horaInicio, horaFin)) {
-            return llenarMensajeError("El profesional no atiende en el horario elegido");
         }
 
         // Si encuentra un turno que ya existe con el doctor y fecha pasados, reviso si ocupado es esta false,
@@ -169,9 +199,10 @@ public class TurnoService implements ITurnoService {
             turno.setOcupado(true);
             turnoRepo.save(turno);
             return mapearDTO(turno);
-        } else {
-            return llenarMensajeError("La fecha y hora elegidas no están disponibles");
         }
+
+        return llenarMensajeError("La fecha y hora elegidas no están disponibles");
+
     }
 
     private LocalDateTime buscarTurnosLibresPrevios(Doctor doctor, LocalTime horaInicio, LocalTime horaFin) {

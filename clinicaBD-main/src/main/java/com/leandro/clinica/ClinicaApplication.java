@@ -648,8 +648,12 @@ public class ClinicaApplication implements CommandLineRunner {
             return;
         }
 
-        String pac = turno.getPaciente() != null ? (turno.getPaciente().getNombre() + " " + turno.getPaciente().getApellido()) : "";
-        String doc = turno.getDoctor() != null ? (turno.getDoctor().getNombre() + " " + turno.getDoctor().getApellido()) : "";
+        String pac = turno.getPaciente() != null
+                ? (turno.getPaciente().getId()+ "# " + turno.getPaciente().getNombre() + " " + turno.getPaciente().getApellido())
+                : "";
+        String doc = turno.getDoctor() != null
+                ? (turno.getDoctor().getId() +"# "+turno.getDoctor().getNombre() + " " + turno.getDoctor().getApellido() + ", " + turno.getDoctor().getEspecialidad()) :
+                "";
         System.out.println("# Turno " + turno.getId());
         System.out.println("  Fecha: " + turno.getFecha() + "  Hora: " + turno.getHora());
         System.out.println("  Paciente: " + pac);
